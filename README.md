@@ -48,7 +48,7 @@ There are 3 main functions on the Pipeline-builder, these are:
 
 *   `Builder start[Async](Function fn)`: Add a startup-action (only called when the pipeline goes from doing nothing to doing something.
 *   `Builder stop[Async](Function fn)`: Add a stop-action (only called when the pipeline is done with it's entire queue, and goes to sleep.
-*   `Builder pipe[sync](Function fn)`: Add a pipe to the pipeline. Pipes are (like start and stop actions) called in turn, but they are called in turn for each item submitted into the pipeline.
+*   `Builder pipe[Async](Function fn)`: Add a pipe to the pipeline. Pipes are (like start and stop actions) called in turn, but they are called in turn for each item submitted into the pipeline.
 *   `Pipeline create()`: Creates a pipeline from the builder. The builder cannot be used more after this. Use the Pipeline as a function to commit new items.
 
 
