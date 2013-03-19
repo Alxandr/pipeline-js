@@ -71,12 +71,78 @@ function Pipeline() {
         ]);
     }
 
+    function runState(item) {
+        var _started = [],
+            _completed = [],
+            _step = [];
+
+        item.start = onStarted;
+        item.step = onStep;
+        item.stop = onCompleted;
+
+        return {
+            started: started,
+            completed: completed,
+            step: step,
+            state: state
+        };
+
+        function onStarted(state) {
+            for(var i = 0, l = _started.length; i < l; i++) {
+                _started[i] && _started[i](state);
+            }
+        }
+
+        function onStep(state) {
+            for(var i = 0, l = _step.length; i < l; i++) {
+                _step[i] && _step[i](state);
+            }
+        }
+
+        function onCompleted(state) {
+            for(var i = 0, l = _completed.length; i < l; i++) {
+                _completed[i] && _completed[i](state);
+            }
+        }
+
+        function started(cb) {
+            if(cb === undefined) {
+                return item.started;
+            }
+
+            _started.push(cb);
+        }
+
+        function completed(cb) {
+            if(cb === undefined) {
+                return item.completed;
+            }
+
+            _completed.push(cb);
+        }
+
+        function step(cb) {
+            if(cb === undefined) {
+                return state();
+            }
+
+            _step.push(cb);
+        }
+
+        function state() {
+            return item.state;
+        }
+    }
+
     function create() {
         created = true;
 
         function commit(object) {
-            queue.push({state: object});
+            var item = {state: object};
+            item.runState = runState(item);
+            queue.push(item);
             run();
+            return item.runState;
         }
 
         function once(cb) {
@@ -118,17 +184,26 @@ function Pipeline() {
         if(!has(settings, 'thisArg')) settings.thisArg = null;
         if(!has(settings, 'args')) settings.args = [];
         if(!has(settings, 'index')) settings.index = 0;
+        if(!has(settings, 'start')) settings.start = function emptyStart() {};
+        if(!has(settings, 'stop')) settings.stop = function emptyStop() {};
+        if(!has(settings, 'step')) settings.step = function emptyStep() {};
 
+        var customArgs = settings.args.slice(0);
+        settings.start.apply(settings.thisArg, customArgs);
         settings.args.push(runNext);
         runNext();
 
         function runNext()
         {
-            if(settings.index == -1 || settings.index >= settings.list.length) return settings.cb();
+            if(settings.index == -1 || settings.index >= settings.list.length) {
+                settings.stop.apply(settings.thisArg, customArgs);
+                return settings.cb();
+            }
 
             var current = settings.index++;
             var fn = settings.list[current];
             settings.current = current;
+            settings.step.apply(settings.thisArg, customArgs);
             fn.apply(settings.thisArg, settings.args);
         }
     }
